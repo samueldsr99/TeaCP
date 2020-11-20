@@ -1,6 +1,8 @@
 """
 Packet class
 """
+from random import randint
+
 
 # Header fields in order
 # (field, start_position, length)
@@ -24,18 +26,19 @@ class Packet:
         data: bytes = b'',
         ack: int = 0,
         syn: int = 0,
-        end: int = 0,
+        fin: int = 0,
         rst: int = 0
     ):
         header = {
-            key: teacp_header[key] if teacp_header.get(key) else 0 for key, _, _ in HEADER
+            key: teacp_header[key] if teacp_header.get(key) else 0
+            for key, _, _ in HEADER
         }
         self.header = header
         self.data = data
 
-        if ack or syn or end or rst:
+        if ack or syn or fin or rst:
             self.header['flags'] = self._get_flags(
-                ack=ack, syn=syn, end=end, rst=rst
+                ack=ack, syn=syn, fin=fin, rst=rst
             )
 
     def prepare(self) -> bytes:
@@ -111,7 +114,7 @@ class Packet:
     def _get_flags(
             ack=0,
             syn=0,
-            end=0,
+            fin=0,
             rst=0
     ):
         """
@@ -119,7 +122,7 @@ class Packet:
         """
         return ack * (1 << 0) + \
             syn * (1 << 1) + \
-            end * (1 << 2) + \
+            fin * (1 << 2) + \
             rst * (1 << 3)
 
     @staticmethod
@@ -152,10 +155,9 @@ class Packet:
         offset: int = 20
     ):
         """
-        Returns SYN Packet class
+        Returns SYN Packet class instance
         """
         if seq_number is None:
-            from random import randint
             seq_number = randint(0, (1 << 16) - 1)
 
         header = {key: 0 for key, _, _ in HEADER}
@@ -169,6 +171,31 @@ class Packet:
         syn_packet.header['checksum'] = syn_packet.calc_checksum()
 
         return syn_packet
+
+    @staticmethod
+    def fin_packet(
+        source: int = 0,
+        dest: int = 0,
+        seq_number: int = None,
+        offset: int = 20
+    ):
+        """
+        Returns FIN Packet class instance
+        """
+        if seq_number is None:
+            seq_number = randint(0, (1 << 16) - 1)
+
+        header = {key: 0 for key, _, _ in HEADER}
+
+        header['source_port'] = source
+        header['destination_port'] = dest
+        header['sequence_number'] = seq_number
+        header['offset'] = offset
+
+        fin_packet = Packet(header, data=b'', fin=1)
+        fin_packet.header['checksum'] = fin_packet.calc_checksum()
+
+        return fin_packet
 
     @staticmethod
     def empty_packet():

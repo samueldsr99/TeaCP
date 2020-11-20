@@ -26,7 +26,3 @@ def parse_ip(ip: str) -> tuple:
             raise ValueError("Invalid IP format")
 
     return tuple(ret)
-
-
-if __name__ == '__main__':
-    print(parse_ip('129.255.12.32'))
